@@ -93,7 +93,6 @@ neko (list)
 print "\nQ42: "
 for sentence in neko[7:8]:
     for chunk in sentence:
-        #chunk in, string out
         join_surfaces = lambda tmp_chunk: ''.join([ tmp.surface for tmp in tmp_chunk.morphs if tmp.pos != "記号"])
         origin = join_surfaces(chunk)
         target = join_surfaces(sentence[chunk.dst])
@@ -103,6 +102,21 @@ for sentence in neko[7:8]:
 #43. 名詞を含む文節が動詞を含む文節に係るものを抽出
 #名詞を含む文節が，動詞を含む文節に係るとき，これらをタブ区切り形式で抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
 print "\nQ43: "
+def contain_postype(chunk, postype):
+    for tmp in chunk.morphs:
+        if tmp.pos == postype:
+            return True
+    else:
+        return False
+    
+for sentence in neko[7:8]:
+    for chunk in sentence:
+        join_surfaces = lambda tmp_chunk: ''.join([ tmp.surface for tmp in tmp_chunk.morphs if tmp.pos != "記号"])
+        origin = join_surfaces(chunk) if contain_postype(chunk, "名詞") else ""
+        target = join_surfaces(sentence[chunk.dst]) if contain_postype(sentence[chunk.dst], "動詞") else ""
+        if origin != "" and target != "":
+            print origin + '\t' + target
+
 
 #44. 係り受け木の可視化
 #与えられた文の係り受け木を有向グラフとして可視化せよ．可視化には，係り受け木をDOT言語に変換し，Graphvizを用いるとよい．また，Pythonから有向グラフを直接的に可視化するには，pydotを使うとよい．
