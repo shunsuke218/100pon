@@ -121,6 +121,20 @@ for sentence in neko[7:8]:
 #44. 係り受け木の可視化
 #与えられた文の係り受け木を有向グラフとして可視化せよ．可視化には，係り受け木をDOT言語に変換し，Graphvizを用いるとよい．また，Pythonから有向グラフを直接的に可視化するには，pydotを使うとよい．
 print "\nQ44: "
+import pydot
+
+graph = pydot.Dot(graph_type='digraph')
+for sentence in neko[0:1]:
+    for chunk in sentence:
+        join_surfaces = lambda tmp_chunk: ''.join([ tmp.surface for tmp in tmp_chunk.morphs if tmp.pos != "記号"])
+        origin = join_surfaces(chunk)
+        target = join_surfaces(sentence[chunk.dst])
+        if origin != "" and target != "":
+            edge = pydot.Edge(origin.decode('utf-8'), target.decode('utf-8'))
+            graph.add_edge(edge)
+
+graph.write_png('q44_graph.png')
+
 
 #45. 動詞の格パターンの抽出
 #今回用いている文章をコーパスと見なし，日本語の述語が取りうる格を調査したい． 動詞を述語，動詞に係っている文節の助詞を格と考え，述語と格をタブ区切り形式で出力せよ． ただし，出力は以下の仕様を満たすようにせよ．
