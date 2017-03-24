@@ -69,6 +69,7 @@ dictionary =  dict( item.split(" = ", 1) for item in result )
 for key, item in dictionary.iteritems():
     print key + ":    " +  item
 
+
 #26. 強調マークアップの除去
 #25の処理時に，テンプレートの値からMediaWikiの強調マークアップ（弱い強調，強調，強い強調のすべて）を除去してテキストに変換せよ（参考: マークアップ早見表）．
 print "\nQ26: "
@@ -77,6 +78,7 @@ dictionary =  dict( item.split(" = ", 1) for item in result )
 for key, item in dictionary.iteritems():
     print key + ":    " +  re.sub(regex, "\g<2>",item)
 
+
 #27. 内部リンクの除去
 #26の処理に加えて，テンプレートの値からMediaWikiの内部リンクマークアップを除去し，テキストに変換せよ（参考: マークアップ早見表）．
 print "\nQ27: "
@@ -84,6 +86,7 @@ regex = re.compile(r"(\"|\'|\[+[^\]]+\||\[)+(.+?)(\"|\'|\])+")
 dictionary =  dict( item.split(" = ", 1) for item in result )
 for key, item in dictionary.iteritems():
     print key + ":    " +  re.sub(regex, "\g<2>",item)
+
 
 #28. MediaWikiマークアップの除去
 #27の処理に加えて，テンプレートの値からMediaWikiマークアップを可能な限り除去し，国の基本情報を整形せよ．
