@@ -51,7 +51,7 @@ class Chunk():
         self.srcs = []
         self.index = -1
     def __str__(self):
-        return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.dst) + ", " + str(self.srcs) + " ]"
+        return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.index) + ", " +  str(self.dst) + ", " + str(self.srcs) + " ]"
 
 neko = []
 sentence = [] # Chunk will be thrown here.
@@ -75,17 +75,30 @@ with open(file,'r') as original:
             sentence[-1].morphs.append(Morph(surface, morpheme[-3], morpheme[0], morpheme[1]))
 
 for chunk in neko[7]:
-    print chunk
+        print chunk
         
 
 #42. 係り元と係り先の文節の表示
 #係り元の文節と係り先の文節のテキストをタブ区切り形式ですべて抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
+'''
+neko (list)
+ └ sentences (list)
+   └ chunk (object)
+      └ index
+      └ dst
+      └ srcs
+      └ morphs (list)
+         └ surface, base, pos, pos1
+'''
 print "\nQ42: "
-for chunk in neko[0]:
-    if len(chunk.srcs) > 0:
-        for target_index in chunk.srcs:
-            for target in ( temp for temp in neko[0] if chunk.index is target_index ):
-                print chunk.surface + '\t' + target.surface
+for sentence in neko[7:8]:
+    for chunk in sentence:
+        #chunk in, string out
+        join_surfaces = lambda tmp_chunk: ''.join([ tmp.surface for tmp in tmp_chunk.morphs if tmp.pos != "記号"])
+        origin = join_surfaces(chunk)
+        target = join_surfaces(sentence[chunk.dst])
+        if origin != "" and target != "":
+            print origin + '\t' + target
 
 #43. 名詞を含む文節が動詞を含む文節に係るものを抽出
 #名詞を含む文節が，動詞を含む文節に係るとき，これらをタブ区切り形式で抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
