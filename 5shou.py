@@ -52,14 +52,16 @@ class Chunk():
         self.index = -1
     def __str__(self):
         return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.dst) + ", " + str(self.srcs) + " ]"
-# '\n'.join([str(m),str(d),str(s) in m, d, s for zip(self.morphs, self.dst, self.srcs)]) + " ]"
 
 neko = []
 sentence = [] # Chunk will be thrown here.
 with open(file,'r') as original:
     for line in original.readlines():
         if line == "EOS\n":
-            [ target.srcs.append(origin.index) for origin in sentence for target in sentence if origin.dst is target.index]
+            [ target.srcs.append(origin.index) \
+              for origin in sentence \
+              for target in sentence \
+              if origin.dst is target.index ]
             neko.append(sentence)
             sentence = []
         elif line.count("\t") is 0:
@@ -79,12 +81,20 @@ for chunk in neko[7]:
 #42. 係り元と係り先の文節の表示
 #係り元の文節と係り先の文節のテキストをタブ区切り形式ですべて抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
 print "\nQ42: "
+for chunk in neko[0]:
+    if len(chunk.srcs) > 0:
+        for target_index in chunk.srcs:
+            for target in ( temp for temp in neko[0] if chunk.index is target_index ):
+                print chunk.surface + '\t' + target.surface
+
 #43. 名詞を含む文節が動詞を含む文節に係るものを抽出
 #名詞を含む文節が，動詞を含む文節に係るとき，これらをタブ区切り形式で抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
 print "\nQ43: "
+
 #44. 係り受け木の可視化
 #与えられた文の係り受け木を有向グラフとして可視化せよ．可視化には，係り受け木をDOT言語に変換し，Graphvizを用いるとよい．また，Pythonから有向グラフを直接的に可視化するには，pydotを使うとよい．
 print "\nQ44: "
+
 #45. 動詞の格パターンの抽出
 #今回用いている文章をコーパスと見なし，日本語の述語が取りうる格を調査したい． 動詞を述語，動詞に係っている文節の助詞を格と考え，述語と格をタブ区切り形式で出力せよ． ただし，出力は以下の仕様を満たすようにせよ．
 #動詞を含む文節において，最左の動詞の基本形を述語とする
@@ -98,6 +108,7 @@ print "\nQ44: "
 #コーパス中で頻出する述語と格パターンの組み合わせ
 #「する」「見る」「与える」という動詞の格パターン（コーパス中で出現頻度の高い順に並べよ）
 print "\nQ45: "
+
 #46. 動詞の格フレーム情報の抽出
 #45のプログラムを改変し，述語と格パターンに続けて項（述語に係っている文節そのもの）をタブ区切り形式で出力せよ．45の仕様に加えて，以下の仕様を満たすようにせよ．
 #
