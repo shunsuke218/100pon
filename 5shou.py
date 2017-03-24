@@ -21,7 +21,7 @@ class Morph():
         self.pos = pos
         self.pos1 = pos1
     def __str__(self):
-        return "[ " + self.surface + ", " +  self.pos + ", " +  self.pos1 + ", " + self.base + ", " + " ]"
+        return "[ " + self.surface + ", " +  self.pos + ", " +  self.pos1 + ", " + self.base + " ]"
 
 neko = []
 sentence = []
@@ -43,76 +43,37 @@ for morph in neko[2]:
 #41. 係り受け解析結果の読み込み（文節・係り受け）
 #40に加えて，文節を表すクラスChunkを実装せよ．このクラスは形態素（Morphオブジェクト）のリスト（morphs），係り先文節インデックス番号（dst），係り元文節インデックス番号のリスト（srcs）をメンバ変数に持つこととする．さらに，入力テキストのCaboChaの解析結果を読み込み，１文をChunkオブジェクトのリストとして表現し，8文目の文節の文字列と係り先を表示せよ．第5章の残りの問題では，ここで作ったプログラムを活用せよ．
 print "\nQ41: "
-class Chunk(Morph):
-    reference = {}
-    def __init__(self, surface, base, pos, pos1, index, dst, srcs=0):
-        Morph.__init__(self, surface, base, pos, pos1)
-        self.index = index
-        self.dst = dst
-        self.srcs = srcs
-        Chunk.reference
-        Chunk.reference[self.index] = dst
-        self.srcs = { i:k for i,k in Chunk.reference.items() if k is self.index }
-        
-    def __str__(self):
-        return "[ " + self.surface + ", " +  self.pos + ", " +  self.pos1 + ", " + self.base + ", " + str(self.index) + ", " +  str(self.dst) + ", " +  str(self.srcs) + " ]"
-
 class Chunk():
     reference = {}
-    def __init__(self, morphs, dst, srcs):
-        self.morphs = morphs
-        self.dst = dst
-        self.srcs = srcs
     def __init__(self):
         self.morphs = []
         self.dst = -1
         self.srcs = []
         self.index = -1
     def __str__(self):
-        return "[ " + '\n'.join([str(m),str(d),str(s) for m,d,s in zip(self.morphs, self.dst, self.srcs)]) + " ]"
-
-neko = []
-sentence = []
-relation = []
-with open(file,'r') as original:
-    for line in original.readlines():
-        if line == "EOS\n":
-            neko.append(Chunk(sentence, dst, srcs))
-            Chunk.reference = {}
-            sentence = []
-            relation = []
-            continue
-        elif line.count("\t") is 0:
-            dependency = line.split(' ')
-            Chunk()
-            relation[int(dependency[1])] = int(dependency[2].replace('D',''))
-            continue
-        surface, morpheme = line.split('\t')
-        morpheme = morpheme.split(',')
-        sentence.append(Morph(surface, morpheme[-3], morpheme[0], morpheme[1]))
-        relation.append({[int(dependency[1])],int(dependency[2].replace('D',''))})
-for morph in neko[7]:
-    print morph
+        return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.dst) + ", " + str(self.srcs) + " ]"
+# '\n'.join([str(m),str(d),str(s) in m, d, s for zip(self.morphs, self.dst, self.srcs)]) + " ]"
 
 neko = []
 sentence = [] # Chunk will be thrown here.
 with open(file,'r') as original:
     for line in original.readlines():
         if line == "EOS\n":
-            for temp in sentence:
-                sentence.srcs = temp.index if temp.index
+            [ target.srcs.append(origin.index) for origin in sentence for target in sentence if origin.dst is target.index]
             neko.append(sentence)
             sentence = []
         elif line.count("\t") is 0:
             chunk = Chunk()
-            chunk.index = int(line.split().[1])
-            chunk.dst = int(line.split().[2].replace('D',''))
+            chunk.index = int(line.split()[1])
+            chunk.dst = int(line.split()[2].replace('D',''))
             sentence.append(chunk)
         else:
             surface, morpheme = line.split('\t')
             morpheme = morpheme.split(',')
             sentence[-1].morphs.append(Morph(surface, morpheme[-3], morpheme[0], morpheme[1]))
-            
+
+for chunk in neko[7]:
+    print chunk
         
 
 #42. 係り元と係り先の文節の表示
