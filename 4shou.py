@@ -25,7 +25,7 @@ with open(file,'r') as original:
             neko.append(sentence)
             sentence = []
             continue
-        surface, morpheme = line.split('	')
+        surface, morpheme = line.split('\t')
         morpheme = morpheme.split(',')
         tempdict = { \
                      "surface":surface, \
@@ -34,17 +34,9 @@ with open(file,'r') as original:
                      "base": morpheme[-3] \
                      }
         sentence.append(dict(tempdict))
-'''
-for line in neko:
-    print "[ "
-    for word in line:
-        #print word
-        print "    { "
-        for key, item in word.iteritems():
-            print "        " + key + ":    " +  item
-        print "    }"
-    print "]"
-'''
+if sentence is not []:
+    sentence.append(dict(tempdict))
+
 
 #31. 動詞
 #動詞の表層形をすべて抽出せよ．
@@ -57,6 +49,7 @@ for line in neko:
 for content in verb:
     print content
 
+
 #32. 動詞の原形
 #動詞の原形をすべて抽出せよ．
 print "\nQ32: "
@@ -68,6 +61,7 @@ for line in neko:
 for content in verborig:
     print content
 
+
 #33. サ変名詞
 #サ変接続の名詞をすべて抽出せよ．
 print "\nQ33: "
@@ -78,6 +72,7 @@ for line in neko:
             sahen_noun.add(word["surface"])
 for content in sahen_noun:
     print content
+
 
 #34. 「AのB」
 #2つの名詞が「の」で連結されている名詞句を抽出せよ．
@@ -134,6 +129,7 @@ for line in neko:
     for word in line:
         all_words.append(word["surface"])
 frequent = Counter(all_words)
+
 for word, number in frequent.most_common():
     print str(number) + ":    " + word
 
@@ -150,28 +146,57 @@ font_path = '/usr/share/fonts/truetype/takao-gothic/TakaoPGothic.ttf'
 font_prop = FontProperties(fname=font_path)
 matplotlib.rcParams['font.family'] = font_prop.get_name()
 
-#label = []
-#total = []
 label = [word[0].decode('utf-8') for word in frequent.most_common(10)]
 total = [word[1] for word in frequent.most_common(10)]
 width = [i for i in range(10)]
-'''
-for word, number in frequent.most_common(10):
-    print word.decode('utf-8')
-    label.append(word.decode('utf-8'))
-    total.append(number)
-'''
-#np.array(number)
-plt.bar(width, total)
+
+plt.bar(width, total, align="center")
 plt.xticks(width, label)
 draw()
 show()
 
-#なお，問題37, 38, 39はmatplotlibもしくはGnuplotを用いるとよい．
-
-
 #38. ヒストグラム
 #単語の出現頻度のヒストグラム（横軸に出現頻度，縦軸に出現頻度をとる単語の種類数を棒グラフで表したもの）を描け．
+print "\nQ38: "
+total = [word[1] for word in frequent.most_common()]
+data = np.array(total)
+mu = np.mean(total)
+sigma = np.std(total)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+
+ax.hist(data, bins=1000, normed=False, facecolor='g', alpha=0.8)
+ax.set_xlim(0,300)
+ax.set_ylim(0,1000)
+
+ax.text(0, 17, r'''
+    $\mu=%.1f$
+    $\sigma=%.2f$
+'''
+ % (mu, sigma))
+
+ax.set_title('Histogram', size=16)
+ax.set_xlabel('Frequency')
+ax.set_ylabel('Number of words')
+ax.grid(True)
+ax.axvline(x=mu, linewidth=1, color='r')
+draw()
+show()
+
 
 #39. Zipfの法則
 #単語の出現頻度順位を横軸，その出現頻度を縦軸として，両対数グラフをプロットせよ．
+print "\nQ39: "
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(data, np.arange(data.shape[0]))
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.grid(True, which = "both")
+draw()
+show()
+
+
+
+
