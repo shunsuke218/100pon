@@ -229,6 +229,23 @@ neko (list)
       └ morphs (list)
          └ surface, base, pos, pos1
 '''
+def join_chunk(chunk): # Join chunk(文節) as a string if it is not punctuation
+    string = ""
+    for morph in chunk.morphs:
+        if morph.pos != "記号":
+            string += morph.surface
+    return string
+
+with open('q47.txt','w') as output:
+    for sentence in neko:
+        for chunk in sentence:
+            for morph in chunk.morphs:
+                if morph.pos1 == "サ変接続":
+                    origin = join_chunk(chunk) + join_chunk(sentence[chunk.dst])
+                    target = ' '.join(extract_origin(sentence, chunk, "助詞"))
+                    term = ' '.join(extract_origin(sentence, chunk))
+                    if origin != "" and target != "" and term != "":
+                        output.write(origin + '\t' + target + '\t' + term + '\n')
 
 
 
