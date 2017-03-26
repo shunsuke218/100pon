@@ -103,6 +103,7 @@ for sentence in neko[7:8]:
 #名詞を含む文節が，動詞を含む文節に係るとき，これらをタブ区切り形式で抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
 print "\nQ43: "
 def contain_postype(chunk, postype):
+    if postype == None: return True
     for tmp in chunk.morphs:
         if tmp.pos == postype:
             return True
@@ -149,6 +150,24 @@ graph.write_png('q44_graph.png')
 #コーパス中で頻出する述語と格パターンの組み合わせ
 #「する」「見る」「与える」という動詞の格パターン（コーパス中で出現頻度の高い順に並べよ）
 print "\nQ45: "
+def extract_origin(sentences, chunk, pos=None): # Return chunk list from sentences and chunk
+    result = []
+    for origin_index in chunk.srcs:
+        for morph in sentences[origin_index].morphs:
+            if morph.pos == pos:
+                result.append(morph.base)
+    return result
+
+with open('q45.txt','w') as output:
+    for sentence in neko:
+        for chunk in sentence:
+            for predicate in [ morph for morph in chunk.morphs if morph.pos == "動詞"]:
+                origin = predicate.base
+                target = ' '.join(extract_origin(sentence, chunk, "助詞"))
+                if origin != "" and target != "":
+                    output.write(origin + '\t' + target + '\n')
+os.system("for key in する 見る 与える; do echo \"==>$key<==\";grep \"^$key\" q45.txt | sort | uniq -c | sort -nr; done")
+
 
 #46. 動詞の格フレーム情報の抽出
 #45のプログラムを改変し，述語と格パターンに続けて項（述語に係っている文節そのもの）をタブ区切り形式で出力せよ．45の仕様に加えて，以下の仕様を満たすようにせよ．
@@ -159,7 +178,20 @@ print "\nQ45: "
 #
 #始める  で      ここで
 #見る    は を   吾輩は ものを
+'''
+neko (list)
+ └ sentences (list)
+   └ chunk (object)
+      └ index
+      └ dst
+      └ srcs
+      └ morphs (list)
+         └ surface, base, pos, pos1
+'''
 print "\nQ46: "
+
+
+
 #47. 機能動詞構文のマイニング
 #動詞のヲ格にサ変接続名詞が入っている場合のみに着目したい．46のプログラムを以下の仕様を満たすように改変せよ．
 #
