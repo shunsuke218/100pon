@@ -178,19 +178,31 @@ os.system("for key in する 見る 与える; do echo \"==>$key<==\";grep \"^$k
 #
 #始める  で      ここで
 #見る    は を   吾輩は ものを
-'''
-neko (list)
- └ sentences (list)
-   └ chunk (object)
-      └ index
-      └ dst
-      └ srcs
-      └ morphs (list)
-         └ surface, base, pos, pos1
-'''
 print "\nQ46: "
+def extract_origin(sentences, chunk, pos=None): # Return chunk list from sentences and chunk
+    result = []
+    temp = ""
+    for origin_index in chunk.srcs:
+        for morph in sentences[origin_index].morphs:
+            if morph.pos == "記号": continue
+            if pos is None:
+                temp += morph.surface
+            elif morph.pos == pos:
+                result.append(morph.base)
+        if pos is None:
+            result.append(temp)
+            temp = ""
+    return result
 
-
+with open('q46.txt','w') as output:
+    for sentence in neko:
+        for chunk in sentence:
+            for predicate in [ morph for morph in chunk.morphs if morph.pos == "動詞"]:
+                origin = predicate.base
+                target = ' '.join(extract_origin(sentence, chunk, "助詞"))
+                term = ' '.join(extract_origin(sentence, chunk))
+                if origin != "" and target != "" and term != "":
+                    output.write(origin + '\t' + target + '\t' + term + '\n')
 
 #47. 機能動詞構文のマイニング
 #動詞のヲ格にサ変接続名詞が入っている場合のみに着目したい．46のプログラムを以下の仕様を満たすように改変せよ．
@@ -207,6 +219,21 @@ print "\nQ46: "
 #コーパス中で頻出する述語（サ変接続名詞+を+動詞）
 #コーパス中で頻出する述語と助詞パターン
 print "\nQ47: "
+'''
+neko (list)
+ └ sentences (list)
+   └ chunk (object)
+      └ index
+      └ dst
+      └ srcs
+      └ morphs (list)
+         └ surface, base, pos, pos1
+'''
+
+
+
+
+
 #48. 名詞から根へのパスの抽出
 #文中のすべての名詞を含む文節に対し，その文節から構文木の根に至るパスを抽出せよ． ただし，構文木上のパスは以下の仕様を満たすものとする．
 #
