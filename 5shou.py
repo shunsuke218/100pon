@@ -54,10 +54,13 @@ class Chunk():
         self.index = -1
     def __str__(self):
         return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.index) + ", " +  str(self.dst) + ", " + str(self.srcs) + " ]"
-    def join_morphs(self, punct = False):
+    def join_morphs(self, skip_punct = True):
         string = ""
         for morph in self.morphs:
-            if not punct:
+            if skip_punct and morph.is_punct():
+               continue
+           string.append(morph.surface)
+        return string
 
 neko = []
 sentence = [] # Chunk will be thrown here.
