@@ -54,13 +54,86 @@ class Chunk():
         self.index = -1
     def __str__(self):
         return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.index) + ", " +  str(self.dst) + ", " + str(self.srcs) + " ]"
+
+    # Join morphs to string
     def join_morphs(self, skip_punct = True):
         string = ""
         for morph in self.morphs:
             if skip_punct and morph.is_punct():
                continue
-           string.append(morph.surface)
+            if type == "surface":
+                string += morph.surface
         return string
+
+    # Check if chunk contains postype
+    def contain_postype(self, postype):
+        if postype == None: return True
+        for tmp in self.morphs:
+            if tmp.pos == postype:
+                return True
+        else:
+            return False
+
+    # Return a list of morph with certain postype
+    def return_morphs(self, postype, string = True):
+        result = []
+        for tmp in self.morphs:
+            if tmp.pos == postype:
+                result.append(tmp)
+        return ''.join([tmp.surface for tmp in result]) if string else result
+
+    # Return a list of origin morph with certain postype
+    def return_origin_morphs(self, sentence, postype = None, string = True):
+        result = []
+        for origin_index in self.srcs:
+            chunk = sentence[origin_index]
+            morph_list = []
+            if postype is None:
+                morph_list = chunk.morphs_exclude_punct()
+            elif chunk.contain_postype(postype):
+                morph_list = chunk.return_morphs(postype, False)
+            for morph in morph_list:
+                result.append(morph)
+        return ' '.join([str(tmp) for tmp in result]) if string else result
+        '''
+        chunklist = []
+        morphlist = []
+        origin = self.srcs
+        for origin_index in origin:
+            chunk = sentence[origin_index]
+            iteration_list = []
+            if postype is None:
+                iteration_list = chunk.morphs_exclude_punct()
+            elif chunk.contain_postype(postype):
+                iteration_list = chunk.return_morphs(postype, False)
+
+
+            iteration_list = chunk.return_morphs(postype, False) \
+                             if chunk.contain_postype(postype) \
+                                else chunk.morphs_exclude_punct()
+
+
+            for morph in iteration_list:
+                morphlist.append(morph)
+            #chunklist.append(morphlist)
+        if not string : return morphlist #chunklist
+        result = ""
+        #for morphlist in chunklist:
+        for morph in morphlist:
+            result += morph.surface
+        result += ' '
+        print result
+        return result
+        #return ' '.join([tmp.surface for tmp in result]) if string else result
+        '''
+
+    def morphs_exclude_punct(self, string = True):
+        result = []
+        for morph in self.morphs:
+            if not morph.is_punct():
+                result.append(morph)
+        return ''.join([tmp.surface for tmp in result]) if string else result
+
 
 neko = []
 sentence = [] # Chunk will be thrown here.
@@ -102,28 +175,21 @@ neko (list)
 print "\nQ42: "
 for sentence in neko[7:8]:
     for chunk in sentence:
-        join_surfaces = lambda tmp_chunk: ''.join([ tmp.surface for tmp in tmp_chunk.morphs if tmp.pos != "記号"])
-        origin = join_surfaces(chunk)
-        target = join_surfaces(sentence[chunk.dst])
+        origin = chunk.join_morphs()
+        target = sentence[chunk.dst].join_morphs()
         if origin != "" and target != "":
             print origin + '\t' + target
 
 #43. 名詞を含む文節が動詞を含む文節に係るものを抽出
 #名詞を含む文節が，動詞を含む文節に係るとき，これらをタブ区切り形式で抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
 print "\nQ43: "
-def contain_postype(chunk, postype):
-    if postype == None: return True
-    for tmp in chunk.morphs:
-        if tmp.pos == postype:
-            return True
-    else:
-        return False
     
 for sentence in neko[7:8]:
-    for chunk in sentence:
-        join_surfaces = lambda tmp_chunk: ''.join([ tmp.surface for tmp in tmp_chunk.morphs if tmp.pos != "記号"])
-        origin = join_surfaces(chunk) if contain_postype(chunk, "名詞") else ""
-        target = join_surfaces(sentence[chunk.dst]) if contain_postype(sentence[chunk.dst], "動詞") else ""
+    for origin_chunk in sentence:
+        target_chunk = sentence[origin_chunk.dst]
+        string_if_contain_pos = lambda chunk, type: chunk.join_morphs() if chunk.contain_postype(type) else ""
+        origin = string_if_contain_pos(origin_chunk, "名詞")
+        target = string_if_contain_pos(target_chunk, "動詞")
         if origin != "" and target != "":
             print origin + '\t' + target
 
@@ -136,9 +202,9 @@ import pydot
 graph = pydot.Dot(graph_type='digraph')
 for sentence in neko[0:1]:
     for chunk in sentence:
-        join_surfaces = lambda tmp_chunk: ''.join([ tmp.surface for tmp in tmp_chunk.morphs if tmp.pos != "記号"])
-        origin = join_surfaces(chunk)
-        target = join_surfaces(sentence[chunk.dst])
+        target_chunk = sentence[chunk.dst]
+        origin = chunk.join_morphs()
+        target = target_chunk.join_morphs()
         if origin != "" and target != "":
             edge = pydot.Edge(origin.decode('utf-8'), target.decode('utf-8'))
             graph.add_edge(edge)
@@ -160,20 +226,12 @@ graph.write('q44_graph.png')
 #コーパス中で頻出する述語と格パターンの組み合わせ
 #「する」「見る」「与える」という動詞の格パターン（コーパス中で出現頻度の高い順に並べよ）
 print "\nQ45: "
-def extract_origin(sentences, chunk, pos=None): # Return chunk list from sentences and chunk
-    result = []
-    for origin_index in chunk.srcs:
-        for morph in sentences[origin_index].morphs:
-            if morph.pos == pos:
-                result.append(morph.base)
-    return result
-
 with open('q45.txt','w') as output:
     for sentence in neko:
         for chunk in sentence:
-            for predicate in [ morph for morph in chunk.morphs if morph.pos == "動詞"]:
-                origin = predicate.base
-                target = ' '.join(extract_origin(sentence, chunk, "助詞"))
+            for verb_morph in chunk.return_morphs("動詞",False):
+                origin = verb_morph.base
+                target = chunk.return_origin_morphs(sentence, "助詞")
                 if origin != "" and target != "":
                     output.write(origin + '\t' + target + '\n')
 os.system("for key in する 見る 与える; do echo \"==>$key<==\";grep \"^$key\" q45.txt | sort | uniq -c | sort -nr; done")
@@ -189,30 +247,16 @@ os.system("for key in する 見る 与える; do echo \"==>$key<==\";grep \"^$k
 #始める  で      ここで
 #見る    は を   吾輩は ものを
 print "\nQ46: "
-def extract_origin(sentences, chunk, pos=None): # Return chunk list from sentences and chunk
-    result = []
-    temp = ""
-    for origin_index in chunk.srcs:
-        for morph in sentences[origin_index].morphs:
-            if morph.pos == "記号": continue
-            if pos is None:
-                temp += morph.surface
-            elif morph.pos == pos:
-                result.append(morph.base)
-        if pos is None:
-            result.append(temp)
-            temp = ""
-    return result
-
 with open('q46.txt','w') as output:
-    for sentence in neko:
+    for sentence in neko[0:2]:
         for chunk in sentence:
-            for predicate in [ morph for morph in chunk.morphs if morph.pos == "動詞"]:
-                origin = predicate.base
-                target = ' '.join(extract_origin(sentence, chunk, "助詞"))
-                term = ' '.join(extract_origin(sentence, chunk))
+            for verb_morph in chunk.return_morphs("動詞", False):
+                origin = verb_morph.base
+                target = chunk.return_origin_morphs(sentence, "助詞")
+                term = chunk.return_origin_morphs(sentence, None)
                 if origin != "" and target != "" and term != "":
                     output.write(origin + '\t' + target + '\t' + term + '\n')
+os.system("cat q46.txt")
 
 #47. 機能動詞構文のマイニング
 #動詞のヲ格にサ変接続名詞が入っている場合のみに着目したい．46のプログラムを以下の仕様を満たすように改変せよ．
@@ -229,16 +273,6 @@ with open('q46.txt','w') as output:
 #コーパス中で頻出する述語（サ変接続名詞+を+動詞）
 #コーパス中で頻出する述語と助詞パターン
 print "\nQ47: "
-'''
-neko (list)
- └ sentences (list)
-   └ chunk (object)
-      └ index
-      └ dst
-      └ srcs
-      └ morphs (list)
-         └ surface, base, pos, pos1
-'''
 def join_chunk(chunk): # Join chunk(文節) as a string if it is not punctuation
     string = ""
     for morph in chunk.morphs:
