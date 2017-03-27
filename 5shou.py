@@ -22,7 +22,8 @@ class Morph():
         self.pos1 = pos1
     def __str__(self):
         return "[ " + self.surface + ", " +  self.pos + ", " +  self.pos1 + ", " + self.base + " ]"
-    
+    def is_punct(self):
+        return self.pos == "記号"
 
 neko = []
 sentence = []
@@ -53,6 +54,10 @@ class Chunk():
         self.index = -1
     def __str__(self):
         return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.index) + ", " +  str(self.dst) + ", " + str(self.srcs) + " ]"
+    def join_morphs(self, punct = False):
+        string = ""
+        for morph in self.morphs:
+            if not punct:
 
 neko = []
 sentence = [] # Chunk will be thrown here.
@@ -135,7 +140,8 @@ for sentence in neko[0:1]:
             edge = pydot.Edge(origin.decode('utf-8'), target.decode('utf-8'))
             graph.add_edge(edge)
 
-graph.write_png('q44_graph.png')
+#graph.write_png('q44_graph.png')
+graph.write('q44_graph.png')
 
 
 #45. 動詞の格パターンの抽出
