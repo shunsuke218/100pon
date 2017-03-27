@@ -22,6 +22,7 @@ class Morph():
         self.pos1 = pos1
     def __str__(self):
         return "[ " + self.surface + ", " +  self.pos + ", " +  self.pos1 + ", " + self.base + " ]"
+    
 
 neko = []
 sentence = []
