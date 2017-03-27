@@ -75,11 +75,23 @@ class Chunk():
             return False
 
     # Return a list of morph with certain postype
-    def return_morphs(self, postype, string = True):
+    def return_morphs(self, postype = None, string = True, skip_punct = True):
         result = []
         for tmp in self.morphs:
-            if tmp.pos == postype:
+            if postype is None:
+                if skip_punct and tmp.pos == "記号":
+                    continue
                 result.append(tmp)
+            elif tmp.pos == postype:
+                result.append(tmp)
+        #return result
+        return ''.join([tmp.surface for tmp in result]) if string else result
+
+    def morphs_exclude_punct(self, string = True):
+        result = []
+        for morph in self.morphs:
+            if not morph.is_punct():
+                result.append(morph)
         return ''.join([tmp.surface for tmp in result]) if string else result
 
     # Return a list of origin morph with certain postype
@@ -87,14 +99,18 @@ class Chunk():
         result = []
         for origin_index in self.srcs:
             chunk = sentence[origin_index]
+            #morph_list = chunk.return_morphs(postype, False) \
+                         #if chunk.contain_postype(postype) else chunk.return_morphs(None, False)
+
             morph_list = []
             if postype is None:
-                morph_list = chunk.morphs_exclude_punct()
+                morph_list = chunk.return_morphs(None, False)
             elif chunk.contain_postype(postype):
                 morph_list = chunk.return_morphs(postype, False)
+
             for morph in morph_list:
                 result.append(morph)
-        return ' '.join([str(tmp) for tmp in result]) if string else result
+        return ' '.join([tmp.surface for tmp in result]) if string else result
         '''
         chunklist = []
         morphlist = []
@@ -127,12 +143,6 @@ class Chunk():
         #return ' '.join([tmp.surface for tmp in result]) if string else result
         '''
 
-    def morphs_exclude_punct(self, string = True):
-        result = []
-        for morph in self.morphs:
-            if not morph.is_punct():
-                result.append(morph)
-        return ''.join([tmp.surface for tmp in result]) if string else result
 
 
 neko = []
