@@ -5,6 +5,7 @@ import sys
 import codecs
 import json 
 import re
+import copy
 
 #第5章: 係り受け解析
 
@@ -56,23 +57,41 @@ class Chunk():
         return "[ " + ''.join([ str(morph) for morph in self.morphs]) + ", " + str(self.index) + ", " +  str(self.dst) + ", " + str(self.srcs) + " ]"
 
     # Join morphs to string
-    def join_morphs(self, skip_punct = True):
+    def join_morphs(self, postype = None, skip_punct = True, type = "surface"):
         string = ""
         for morph in self.morphs:
             if skip_punct and morph.is_punct():
                continue
+            if postype is not None and morph.pos != postype:
+                continue
             if type == "surface":
                 string += morph.surface
+            elif type == "base":
+                string += morph.base
         return string
 
     # Check if chunk contains postype
     def contain_postype(self, postype):
         if postype == None: return True
         for tmp in self.morphs:
-            if tmp.pos == postype:
+            if tmp.pos == postype or tmp.pos1 == postype:
                 return True
         else:
             return False
+
+    # Check if chunk contains phrase
+    def contain_phrase(self, phrase):
+        if phrase == None: return True
+        for tmp in self.morphs:
+            if tmp.surface == phrase or tmp.base == phrase:
+                return True
+        else:
+            return False
+
+    def remove_unmatch_morphs(self, postype):
+        for index, tmp in enumerate(self.morphs):
+            if tmp.pos != postype or tmp.pos1 != postype:
+                self.morphs.pop(index)
 
     # Return a list of morph with certain postype
     def return_morphs(self, postype = None, string = True, skip_punct = True):
@@ -82,46 +101,38 @@ class Chunk():
                 if skip_punct and tmp.pos == "記号":
                     continue
                 result.append(tmp)
-            elif tmp.pos == postype:
+            elif tmp.pos == postype or tmp.pos1 == postype:
                 result.append(tmp)
         #return result
         return ''.join([tmp.surface for tmp in result]) if string else result
 
-    def morphs_exclude_punct(self, string = True):
-        result = []
-        for morph in self.morphs:
-            if not morph.is_punct():
-                result.append(morph)
-        return ''.join([tmp.surface for tmp in result]) if string else result
-
     # Return a list of origin morph with certain postype
-    '''
-    def return_origin_morphs(self, sentence, postype = None, string = True):
-        result = []
-        for origin_index in self.srcs:
-            chunk = sentence[origin_index]
-            #morph_list = chunk.return_morphs(postype, False) \
-                         #if chunk.contain_postype(postype) else chunk.return_morphs(None, False)
-
-            morph_list = []
-            if postype is None:
-                morph_list = chunk.return_morphs(None, False)
-            elif chunk.contain_postype(postype):
-                morph_list = chunk.return_morphs(postype, False)
-
-            for morph in morph_list:
-                result.append(morph)
-        return ' '.join([tmp.surface for tmp in result]) if string else result
-    '''
-    def return_origin_morphs(self, sentence, postype = None, string = True):
+    def return_origin_chunks(self, sentence, postype = None, string = True):
         chunk_list = []
         for origin_index in self.srcs:
             chunk = sentence[origin_index]
-            if postype is not None and not chunk.contain_postype(postype):
-                continue
-            chunk_list.append(sentence[origin_index])
+            if postype is not None:
+                if chunk.contain_postype(postype):
+                    chunk_copy = copy.deepcopy(chunk)
+                    chunk_copy.remove_unmatch_morphs(postype)
+                    chunk = chunk_copy
+                    #chunk.remove_unmatch_morphs(postype)
+                else:
+                    continue
+            chunk_list.append(chunk)
         return chunk_list if string is False \
             else ' '.join([ chunk.join_morphs() for chunk in chunk_list ])
+
+    def return_target_chunk(self, sentence, postype = None, string = True):
+        chunk = sentence[self.dst]
+        if postype is not None:
+            if chunk.contain_postype(postype):
+                chunk_copy = copy.deepcopy(chunk)
+                chunk_copy.remove_unmatch_morphs(postype)
+                chunk = chunk_copy
+            else:
+                chunk = None
+        return chunk if string is False else chunk.join_morphs()
 
 neko = []
 sentence = [] # Chunk will be thrown here.
@@ -219,7 +230,7 @@ with open('q45.txt','w') as output:
         for chunk in sentence:
             for verb_morph in chunk.return_morphs("動詞",False):
                 origin = verb_morph.base
-                target = chunk.return_origin_morphs(sentence, "助詞")
+                target = chunk.return_origin_chunks(sentence, "助詞")
                 if origin != "" and target != "":
                     output.write(origin + '\t' + target + '\n')
 os.system("for key in する 見る 与える; do echo \"==>$key<==\";grep \"^$key\" q45.txt | sort | uniq -c | sort -nr; done")
@@ -238,10 +249,10 @@ print "\nQ46: "
 with open('q46.txt','w') as output:
     for sentence in neko[0:2]:
         for chunk in sentence:
-            for verb_morph in chunk.return_morphs("動詞", False):
+            for verb_morph in chunk.return_morphs("動詞",False):
                 origin = verb_morph.base
-                target = chunk.return_origin_morphs(sentence, "助詞")
-                term = chunk.return_origin_morphs(sentence, None)
+                target = chunk.return_origin_chunks(sentence, "助詞")
+                term = chunk.return_origin_chunks(sentence, None)
                 if origin != "" and target != "" and term != "":
                     output.write(origin + '\t' + target + '\t' + term + '\n')
 os.system("cat q46.txt")
@@ -261,26 +272,70 @@ os.system("cat q46.txt")
 #コーパス中で頻出する述語（サ変接続名詞+を+動詞）
 #コーパス中で頻出する述語と助詞パターン
 print "\nQ47: "
-def join_chunk(chunk): # Join chunk(文節) as a string if it is not punctuation
-    string = ""
-    for morph in chunk.morphs:
-        if morph.pos != "記号":
-            string += morph.surface
-    return string
-
 with open('q47.txt','w') as output:
-    for sentence in neko:
-        for chunk in sentence:
-            for morph in chunk.morphs:
-                if morph.pos1 == "サ変接続":
-                    origin = join_chunk(chunk) + join_chunk(sentence[chunk.dst])
-                    target = ' '.join(extract_origin(sentence, chunk, "助詞"))
-                    term = ' '.join(extract_origin(sentence, chunk))
-                    if origin != "" and target != "" and term != "":
-                        output.write(origin + '\t' + target + '\t' + term + '\n')
+    for sentence in neko[0:100]:
+        for sahen_chunk in sentence:
+            if sahen_chunk.contain_postype("サ変接続") \
+               and sahen_chunk.contain_postype("格助詞") \
+               and sahen_chunk.contain_phrase("を"):
+                # Find predicate section
+                verb_chunk = sahen_chunk.return_target_chunk(sentence, None, False)
+                if verb_chunk is None or verb_chunk.contain_postype("動詞") is False: continue
+                verb_morph = verb_chunk.return_morphs("動詞", False)[0]
+                sahen_morph = sahen_chunk.return_morphs("サ変接続", False)[0]
+                predicate = sahen_morph.surface + "を" + verb_morph.base
+                
+                # Find origin chunk
+                origin_chunk = verb_chunk.return_origin_chunks(sentence, None, False)
+                if len(origin_chunk) is 0: continue
 
+                #print "--->",sahen_chunk,"<---"
+                dictionary = {}
+                for chunk in origin_chunk:
+                    if chunk.index == sahen_chunk.index:
+                        continue
+                    elif not (chunk.contain_postype("係助詞") or chunk.contain_postype("格助詞")):
+                        continue
+                    #print "--->",chunk,chunk.join_morphs(),"<---"
+                    text = chunk.join_morphs()
 
+                    for index, morph in enumerate(chunk.morphs):
+                        if morph.pos1 != "係助詞" or morph.pos1 != "格助詞":
+                            chunk.morphs.pop(index)
+                    key = chunk.join_morphs("助詞")
+                    #print key, len(key)
+                    if len(key) is 0: continue
+                    dictionary[key] = text
+                        
+                print predicate
+                for key, text in dictionary.iteritems():
+                    print key, text
+                '''
+                for chunk in origin_chunk:
+                    print chunk
+                '''
+                    #print ' '.join([chunk.join_morphs("助詞"), chunk.join_morphs()])
+                #print "##################################################"
+                '''
+                target_chunk = sahen_chunk.return_target_chunk(sentence, None, False)
 
+                sahen = sahen_chunk.return_morphs("サ変接続", False)
+                kakujo = sahen_chunk.return_morphs("格助詞")
+                doushi = target_chunk.return_morphs("動詞", False)
+                if kakujo.count("を") > 0 or len(sahen) is 0 or len(doushi) is 0 : continue
+
+                origin = sahen[0].base + "を" + doushi[0].base 
+
+                target_list = target_chunk.return_origin_chunks(sentence, "助詞", False)
+                for index, chunk in enumerate(target_list):
+                    if chunk.index is sahen_chunk.index:
+                        target_list.pop(index)
+                predicate = ' '.join([ chunk.join_morphs("助詞") for chunk in target_list])
+                pattern = ' '.join([ chunk.join_morphs() for chunk in target_list])
+                if origin != "" and predicate != "" and pattern != "":
+                    output.write(origin + '\t' + predicate + '\t' + pattern + '\n')
+os.system("cat q47.txt")
+'''
 
 
 #48. 名詞から根へのパスの抽出
