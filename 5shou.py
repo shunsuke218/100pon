@@ -95,6 +95,7 @@ class Chunk():
         return ''.join([tmp.surface for tmp in result]) if string else result
 
     # Return a list of origin morph with certain postype
+    '''
     def return_origin_morphs(self, sentence, postype = None, string = True):
         result = []
         for origin_index in self.srcs:
@@ -111,39 +112,16 @@ class Chunk():
             for morph in morph_list:
                 result.append(morph)
         return ' '.join([tmp.surface for tmp in result]) if string else result
-        '''
-        chunklist = []
-        morphlist = []
-        origin = self.srcs
-        for origin_index in origin:
+    '''
+    def return_origin_morphs(self, sentence, postype = None, string = True):
+        chunk_list = []
+        for origin_index in self.srcs:
             chunk = sentence[origin_index]
-            iteration_list = []
-            if postype is None:
-                iteration_list = chunk.morphs_exclude_punct()
-            elif chunk.contain_postype(postype):
-                iteration_list = chunk.return_morphs(postype, False)
-
-
-            iteration_list = chunk.return_morphs(postype, False) \
-                             if chunk.contain_postype(postype) \
-                                else chunk.morphs_exclude_punct()
-
-
-            for morph in iteration_list:
-                morphlist.append(morph)
-            #chunklist.append(morphlist)
-        if not string : return morphlist #chunklist
-        result = ""
-        #for morphlist in chunklist:
-        for morph in morphlist:
-            result += morph.surface
-        result += ' '
-        print result
-        return result
-        #return ' '.join([tmp.surface for tmp in result]) if string else result
-        '''
-
-
+            if postype is not None and not chunk.contain_postype(postype):
+                continue
+            chunk_list.append(sentence[origin_index])
+        return chunk_list if string is False \
+            else ' '.join([ chunk.join_morphs() for chunk in chunk_list ])
 
 neko = []
 sentence = [] # Chunk will be thrown here.
