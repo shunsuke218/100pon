@@ -273,69 +273,46 @@ os.system("cat q46.txt")
 #コーパス中で頻出する述語と助詞パターン
 print "\nQ47: "
 with open('q47.txt','w') as output:
-    for sentence in neko[0:100]:
+    for sentence in neko:
         for sahen_chunk in sentence:
+            # For all chunks which contain sahen
             if sahen_chunk.contain_postype("サ変接続") \
                and sahen_chunk.contain_postype("格助詞") \
                and sahen_chunk.contain_phrase("を"):
-                # Find predicate section
-                verb_chunk = sahen_chunk.return_target_chunk(sentence, None, False)
-                if verb_chunk is None or verb_chunk.contain_postype("動詞") is False: continue
-                verb_morph = verb_chunk.return_morphs("動詞", False)[0]
-                sahen_morph = sahen_chunk.return_morphs("サ変接続", False)[0]
-                predicate = sahen_morph.surface + "を" + verb_morph.base
                 
-                # Find origin chunk
+                verb_chunk = sahen_chunk.return_target_chunk(sentence, None, False)
                 origin_chunk = verb_chunk.return_origin_chunks(sentence, None, False)
-                if len(origin_chunk) is 0: continue
 
-                #print "--->",sahen_chunk,"<---"
+                # If target chunk contain verb
+                if verb_chunk is None \
+                   or verb_chunk.contain_postype("動詞") is False: 
+                    continue
+
+                # Get sahen and verb, and join together
+                sahen_morph = sahen_chunk.return_morphs("サ変接続", False)[0]
+                verb_morph = verb_chunk.return_morphs("動詞", False)[0]
+                predicate = sahen_morph.surface + "を" + verb_morph.base
+
+                # Extract joshi and phrases which contains joshi and make a dictionary
                 dictionary = {}
                 for chunk in origin_chunk:
-                    if chunk.index == sahen_chunk.index:
-                        continue
-                    elif not (chunk.contain_postype("係助詞") or chunk.contain_postype("格助詞")):
-                        continue
-                    #print "--->",chunk,chunk.join_morphs(),"<---"
+                    if chunk.index == sahen_chunk.index \
+                         or not (chunk.contain_postype("係助詞") or chunk.contain_postype("格助詞")): continue
                     text = chunk.join_morphs()
-
                     for index, morph in enumerate(chunk.morphs):
                         if morph.pos1 != "係助詞" or morph.pos1 != "格助詞":
                             chunk.morphs.pop(index)
                     key = chunk.join_morphs("助詞")
-                    #print key, len(key)
-                    if len(key) is 0: continue
+                    if len(key) is 0 or len(text) is 0: continue
                     dictionary[key] = text
-                        
-                print predicate
-                for key, text in dictionary.iteritems():
-                    print key, text
-                '''
-                for chunk in origin_chunk:
-                    print chunk
-                '''
-                    #print ' '.join([chunk.join_morphs("助詞"), chunk.join_morphs()])
-                #print "##################################################"
-                '''
-                target_chunk = sahen_chunk.return_target_chunk(sentence, None, False)
 
-                sahen = sahen_chunk.return_morphs("サ変接続", False)
-                kakujo = sahen_chunk.return_morphs("格助詞")
-                doushi = target_chunk.return_morphs("動詞", False)
-                if kakujo.count("を") > 0 or len(sahen) is 0 or len(doushi) is 0 : continue
-
-                origin = sahen[0].base + "を" + doushi[0].base 
-
-                target_list = target_chunk.return_origin_chunks(sentence, "助詞", False)
-                for index, chunk in enumerate(target_list):
-                    if chunk.index is sahen_chunk.index:
-                        target_list.pop(index)
-                predicate = ' '.join([ chunk.join_morphs("助詞") for chunk in target_list])
-                pattern = ' '.join([ chunk.join_morphs() for chunk in target_list])
-                if origin != "" and predicate != "" and pattern != "":
-                    output.write(origin + '\t' + predicate + '\t' + pattern + '\n')
-os.system("cat q47.txt")
-'''
+                # Sort dictionary and save it to a file
+                if bool(dictionary) is False: continue
+                keys = []; values = []
+                for (key, value) in sorted(dictionary.items()):
+                    keys.append(key); values.append(value)
+                output.write(predicate + '\t' + ' '.join(keys) + '\t' + ' '.join(values) + '\n')
+os.system("cut q47.txt -f 1 | sort | uniq -c | sort -nr; echo '---'; cut q47.txt -f 1,2 | sort | uniq -c | sort -nr")
 
 
 #48. 名詞から根へのパスの抽出
@@ -350,6 +327,8 @@ os.system("cat q47.txt")
 #人間という -> ものを -> 見た
 #ものを -> 見た
 print "\nQ48: "
+
+
 #49. 名詞間の係り受けパスの抽出
 #文中のすべての名詞句のペアを結ぶ最短係り受けパスを抽出せよ．ただし，名詞句ペアの文節番号がiiとjj（i<ji<j）のとき，係り受けパスは以下の仕様を満たすものとする．
 #
