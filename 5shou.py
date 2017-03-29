@@ -124,6 +124,7 @@ class Chunk():
             else ' '.join([ chunk.join_morphs() for chunk in chunk_list ])
 
     def return_target_chunk(self, sentence, postype = None, string = True):
+        if self.dst is -1: return None
         chunk = sentence[self.dst]
         if postype is not None:
             if chunk.contain_postype(postype):
@@ -155,37 +156,28 @@ with open(file,'r') as original:
             morpheme = morpheme.split(',')
             sentence[-1].morphs.append(Morph(surface, morpheme[-3], morpheme[0], morpheme[1]))
 
-for chunk in neko[7]:
+for chunk in neko[8]:
         print chunk
         
 
 #42. 係り元と係り先の文節の表示
 #係り元の文節と係り先の文節のテキストをタブ区切り形式ですべて抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
-'''
-neko (list)
- └ sentences (list)
-   └ chunk (object)
-      └ index
-      └ dst
-      └ srcs
-      └ morphs (list)
-         └ surface, base, pos, pos1
-'''
 print "\nQ42: "
-for sentence in neko[7:8]:
+for sentence in neko[0:10]:
     for chunk in sentence:
         origin = chunk.join_morphs()
-        target = sentence[chunk.dst].join_morphs()
-        if origin != "" and target != "":
+        target = chunk.return_target_chunk(sentence)
+        if origin != "" and target is not None:
             print origin + '\t' + target
 
 #43. 名詞を含む文節が動詞を含む文節に係るものを抽出
 #名詞を含む文節が，動詞を含む文節に係るとき，これらをタブ区切り形式で抽出せよ．ただし，句読点などの記号は出力しないようにせよ．
 print "\nQ43: "
     
-for sentence in neko[7:8]:
+for sentence in neko[0:10]:
     for origin_chunk in sentence:
-        target_chunk = sentence[origin_chunk.dst]
+        target_chunk =  origin_chunk.return_target_chunk(sentence, None, False)
+        if target_chunk is None: continue
         string_if_contain_pos = lambda chunk, type: chunk.join_morphs() if chunk.contain_postype(type) else ""
         origin = string_if_contain_pos(origin_chunk, "名詞")
         target = string_if_contain_pos(target_chunk, "動詞")
@@ -247,7 +239,7 @@ os.system("for key in する 見る 与える; do echo \"==>$key<==\";grep \"^$k
 #見る    は を   吾輩は ものを
 print "\nQ46: "
 with open('q46.txt','w') as output:
-    for sentence in neko[0:2]:
+    for sentence in neko[0:10]:
         for chunk in sentence:
             for verb_morph in chunk.return_morphs("動詞",False):
                 origin = verb_morph.base
@@ -281,6 +273,7 @@ with open('q47.txt','w') as output:
                and sahen_chunk.contain_phrase("を"):
                 
                 verb_chunk = sahen_chunk.return_target_chunk(sentence, None, False)
+                if verb_chunk is None: continue
                 origin_chunk = verb_chunk.return_origin_chunks(sentence, None, False)
 
                 # If target chunk contain verb
@@ -327,6 +320,23 @@ os.system("cut q47.txt -f 1 | sort | uniq -c | sort -nr; echo '---'; cut q47.txt
 #人間という -> ものを -> 見た
 #ものを -> 見た
 print "\nQ48: "
+def print_all_targets(chunk, sentence):
+    target = sentence[chunk.dst]
+    print " -> ", target.join_morphs(),
+    if target.dst is -1: return
+    print_all_targets(target, sentence)
+
+
+with open('q48.txt','w') as output:
+    for sentence in neko[0:10]:
+        for meishi_chunk in [ chunk for chunk in sentence if chunk.contain_postype("名詞") ]:
+            target = meishi_chunk.return_target_chunk(sentence, None, False)
+            if target is not None \
+               and (target.dst is not -1\
+                    or len(target.join_morphs()) is not 0 ):
+                print meishi_chunk.join_morphs(),
+                print_all_targets(meishi_chunk, sentence)
+                print ""
 
 
 #49. 名詞間の係り受けパスの抽出
