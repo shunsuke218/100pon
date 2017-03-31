@@ -363,19 +363,13 @@ for sentence in neko[0:10]:
 print "\nQ49: "
 import itertools
 
-def print_all_targets(chunk, sentence):
-    target = sentence[chunk.dst]
-    print " -> ", target.join_morphs(),
-    if target.dst is -1: return
-    print_all_targets(target, sentence)
-
-def print_all_targets_neo(chunk, chunk2, sentence, beginning = True):
+def print_all_targets(chunk, chunk2, sentence, beginning = True):
     target = sentence[chunk.dst]
     target2 = sentence[chunk2.dst]
     chunk_dst = " chunk dst: (" + str(chunk.dst) + ", " + str(chunk2.dst) + ")"
     # End of the sentence A
     if chunk.dst is -1 and chunk2.dst is -1: 
-        print "|", target.join_morphs()#"(",target.index,",",target.dst,")",chunk_dst,
+        print "|", target.join_morphs()
         return
     # End of the sentence B
     elif chunk.index is chunk2.index and chunk.dst is not -1: 
@@ -384,49 +378,33 @@ def print_all_targets_neo(chunk, chunk2, sentence, beginning = True):
 
     # Beginning of the sentence A
     elif chunk.dst is not -1 and target.dst is -1 and beginning:
-        chunk_copy = copy.deepcopy(chunk)
-        chunk_copy.remove_match_morphs("名詞")
-        chunk_copy2 = copy.deepcopy(chunk2)
-        chunk_copy2.remove_match_morphs("名詞")
-        print "X" + chunk_copy.join_morphs()," | Y" + chunk_copy2.join_morphs(),
-        print_all_targets_neo(target, target2, sentence, False)
+        print chunk.join_morphs()," | " + chunk2.join_morphs(),
+        print_all_targets(target, target2, sentence, False)
     # Beginning of the sentence B
     elif beginning:
-        chunk_copy = copy.deepcopy(chunk)
-        chunk_copy.remove_match_morphs("名詞")
-        print "X" + chunk_copy.join_morphs(),
-        print_all_targets_neo(target, chunk2, sentence, False)
-
+        print chunk.join_morphs(),
+        print_all_targets(target, chunk2, sentence, False)
 
     # Middle of the sentence
     elif chunk.index < chunk2.index:
-        print "->", chunk.join_morphs(),#"(",chunk.index,",",chunk.dst,")",chunk_dst,
-        print_all_targets_neo(target, chunk2, sentence, False)
+        print "->", chunk.join_morphs(),
+        print_all_targets(target, chunk2, sentence, False)
     else:
-        print "->", chunk2.join_morphs(),#"(",chunk2.index,",",chunk2.dst,")",chunk_dst,
-        print_all_targets_neo(chunk, target2, sentence, False)
+        print "->", chunk2.join_morphs(),
+        print_all_targets(chunk, target2, sentence, False)
 
-
-    
 
 for sentence in neko[7:9]:
     meishi_list = [ chunk for chunk in sentence if chunk.contain_postype("名詞") ]
     for pair in list(itertools.combinations(meishi_list,2)):
-        X = pair[0]; Y = pair[1]
-        '''
-        X = pair[0]; x = X.index; i = X.dst
-        Y = pair[1]; y = Y.index; j = Y.dst
-        print "[",\
-            X.join_morphs(),"(",x,",",i,")",\
-            Y.join_morphs(),"(",y,",",j,")","]"
-        print X.join_morphs(),
-        print_all_targets(X, sentence)
-        print ""
-        print Y.join_morphs(),
-        print_all_targets(Y, sentence)
-        print ""
-        #print_all_targets(X, Y, sentence)
-        print ""
-        '''
-        print X.join_morphs(),Y.join_morphs()
-        print_all_targets_neo(X, Y, sentence)
+        X = copy.deepcopy(pair[0])
+        Y = copy.deepcopy(pair[1])
+
+        # Replace noun with X,Y
+        X.remove_match_morphs("名詞")
+        X.morphs.insert(0, Morph("X","名詞","",""))
+        Y.remove_match_morphs("名詞")
+        Y.morphs.insert(0, Morph("Y","名詞","",""))
+        
+        # Print all targets
+        print_all_targets(X, Y, sentence)
