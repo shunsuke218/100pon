@@ -93,6 +93,11 @@ class Chunk():
             if tmp.pos != postype or tmp.pos1 != postype:
                 self.morphs.pop(index)
 
+    def remove_match_morphs(self, postype):
+        for index, tmp in enumerate(self.morphs):
+            if tmp.pos == postype or tmp.pos1 == postype:
+                self.morphs.pop(index)
+
     # Return a list of morph with certain postype
     def return_morphs(self, postype = None, string = True, skip_punct = True):
         result = []
@@ -327,27 +332,26 @@ def print_all_targets(chunk, sentence):
     print_all_targets(target, sentence)
 
 
-with open('q48.txt','w') as output:
-    for sentence in neko[0:10]:
-        for meishi_chunk in [ chunk for chunk in sentence if chunk.contain_postype("名詞") ]:
-            target = meishi_chunk.return_target_chunk(sentence, None, False)
-            if target is not None \
-               and (target.dst is not -1\
-                    or len(target.join_morphs()) is not 0 ):
-                print meishi_chunk.join_morphs(),
-                print_all_targets(meishi_chunk, sentence)
-                print ""
+for sentence in neko[0:10]:
+    for meishi_chunk in [ chunk for chunk in sentence if chunk.contain_postype("名詞") ]:
+        target = meishi_chunk.return_target_chunk(sentence, None, False)
+        if target is not None \
+           and (target.dst is not -1\
+                or len(target.join_morphs()) is not 0 ):
+            print meishi_chunk.join_morphs(),
+            print_all_targets(meishi_chunk, sentence)
+            print ""
 
 
 #49. 名詞間の係り受けパスの抽出
-#文中のすべての名詞句のペアを結ぶ最短係り受けパスを抽出せよ．ただし，名詞句ペアの文節番号がiiとjj（i<ji<j）のとき，係り受けパスは以下の仕様を満たすものとする．
+#文中のすべての名詞句のペアを結ぶ最短係り受けパスを抽出せよ．ただし，名詞句ペアの文節番号がiとj（i<j）のとき，係り受けパスは以下の仕様を満たすものとする．
 #
 #問題48と同様に，パスは開始文節から終了文節に至るまでの各文節の表現（表層形の形態素列）を"->"で連結して表現する
-#文節iiとjjに含まれる名詞句はそれぞれ，XとYに置換する
+#文節iとjに含まれる名詞句はそれぞれ，XとYに置換する
 #また，係り受けパスの形状は，以下の2通りが考えられる．
 #
-#文節iiから構文木の根に至る経路上に文節jjが存在する場合: 文節iiから文節jjのパスを表示
-#上記以外で，文節iiと文節jjから構文木の根に至る経路上で共通の文節kkで交わる場合: 文節iiから文節kkに至る直前のパスと文節jjから文節kkに至る直前までのパス，文節kkの内容を"|"で連結して表示
+#文節iから構文木の根に至る経路上に文節jが存在する場合: 文節iから文節jのパスを表示
+#上記以外で，文節iと文節jから構文木の根に至る経路上で共通の文節kで交わる場合: 文節iから文節kに至る直前のパスと文節jから文節kに至る直前までのパス，文節kの内容を"|"で連結して表示
 #例えば，「吾輩はここで始めて人間というものを見た。」という文（neko.txt.cabochaの8文目）から，次のような出力が得られるはずである．
 #
 #Xは | Yで -> 始めて -> 人間という -> ものを | 見た
@@ -357,3 +361,72 @@ with open('q48.txt','w') as output:
 #Xで -> 始めて -> 人間という -> Y
 #Xという -> Y
 print "\nQ49: "
+import itertools
+
+def print_all_targets(chunk, sentence):
+    target = sentence[chunk.dst]
+    print " -> ", target.join_morphs(),
+    if target.dst is -1: return
+    print_all_targets(target, sentence)
+
+def print_all_targets_neo(chunk, chunk2, sentence, beginning = True):
+    target = sentence[chunk.dst]
+    target2 = sentence[chunk2.dst]
+    chunk_dst = " chunk dst: (" + str(chunk.dst) + ", " + str(chunk2.dst) + ")"
+    # End of the sentence A
+    if chunk.dst is -1 and chunk2.dst is -1: 
+        print "|", target.join_morphs()#"(",target.index,",",target.dst,")",chunk_dst,
+        return
+    # End of the sentence B
+    elif chunk.index is chunk2.index and chunk.dst is not -1: 
+        print "-> Y"
+        return
+
+    # Beginning of the sentence A
+    elif chunk.dst is not -1 and target.dst is -1 and beginning:
+        chunk_copy = copy.deepcopy(chunk)
+        chunk_copy.remove_match_morphs("名詞")
+        chunk_copy2 = copy.deepcopy(chunk2)
+        chunk_copy2.remove_match_morphs("名詞")
+        print "X" + chunk_copy.join_morphs()," | Y" + chunk_copy2.join_morphs(),
+        print_all_targets_neo(target, target2, sentence, False)
+    # Beginning of the sentence B
+    elif beginning:
+        chunk_copy = copy.deepcopy(chunk)
+        chunk_copy.remove_match_morphs("名詞")
+        print "X" + chunk_copy.join_morphs(),
+        print_all_targets_neo(target, chunk2, sentence, False)
+
+
+    # Middle of the sentence
+    elif chunk.index < chunk2.index:
+        print "->", chunk.join_morphs(),#"(",chunk.index,",",chunk.dst,")",chunk_dst,
+        print_all_targets_neo(target, chunk2, sentence, False)
+    else:
+        print "->", chunk2.join_morphs(),#"(",chunk2.index,",",chunk2.dst,")",chunk_dst,
+        print_all_targets_neo(chunk, target2, sentence, False)
+
+
+    
+
+for sentence in neko[7:9]:
+    meishi_list = [ chunk for chunk in sentence if chunk.contain_postype("名詞") ]
+    for pair in list(itertools.combinations(meishi_list,2)):
+        X = pair[0]; Y = pair[1]
+        '''
+        X = pair[0]; x = X.index; i = X.dst
+        Y = pair[1]; y = Y.index; j = Y.dst
+        print "[",\
+            X.join_morphs(),"(",x,",",i,")",\
+            Y.join_morphs(),"(",y,",",j,")","]"
+        print X.join_morphs(),
+        print_all_targets(X, sentence)
+        print ""
+        print Y.join_morphs(),
+        print_all_targets(Y, sentence)
+        print ""
+        #print_all_targets(X, Y, sentence)
+        print ""
+        '''
+        print X.join_morphs(),Y.join_morphs()
+        print_all_targets_neo(X, Y, sentence)
