@@ -17,41 +17,72 @@ file = "nlp.txt"
 print "Q50:"
 with open(file, 'r') as input:
     raw_input = input.read()
-    sentences = re.findall("[^\.;:\?!]+\.(?=\s+[A-Z])",raw_input):
+    sentences = re.findall("[^\.;:\?!]+\.(?=\s+[A-Z])",raw_input)
     for sentence in sentences:
         print sentence
 
 #51 単語の切り出し
 #空白を単語の区切りとみなし，50の出力を入力として受け取り，1行1単語の形式で出力せよ．ただし，文の終端では空行を出力せよ．
 print "\nQ51:"
-    for sentence in sentences:
-        words = match.split(' '):
-        for word in words:
-            print word
+for sentence in sentences:
+    for word in sentence.split(' '):
+        print word
 
 #52 ステミング
 #51の出力を入力として受け取り，Porterのステミングアルゴリズムを適用し，単語と語幹をタブ区切り形式で出力せよ． Pythonでは，Porterのステミングアルゴリズムの実装としてstemmingモジュールを利用するとよい．
 print "\nQ52:"
 from stemming.porter2 import stem
-for word in words:
-    print word + '\t' + stem(word)
+for sentence in sentences:
+    for word in sentence.split(' '):
+        print word + '\t' + stem(word)
 
 
 #53. Tokenization
 #Stanford Core NLPを用い，入力テキストの解析結果をXML形式で得よ．また，このXMLファイルを読み込み，入力テキストを1行1単語の形式で出力せよ．
 print "\nQ53:"
+from pycorenlp import StanfordCoreNLP
+from xml.etree import ElementTree as Etree
 
+nlp = StanfordCoreNLP('http://localhost:9000')
+properties={
+    'timeout': '50000',
+    'annotators': 'tokenize,ssplit,lemma,pos,ner,parse',
+    'outputFormat': 'xml'
+}
+# Merge all outputs to one
+for first, sentence in enumerate(sentences):
+    data = Etree.fromstring(nlp.annotate(sentence, properties))
+    if not first:
+        result = data
+    else:
+        result.extend(data)
+# Save file
+with open("q53.xml", 'w') as output:
+    output.write(Etree.tostring(result))
+
+# Now load the file
+xml = Etree.parse("q53.xml").getroot()
+for element in xml.getiterator("word"):
+    print element.text
+
+    
 #54. 品詞タグ付け
 #Stanford Core NLPの解析結果XMLを読み込み，単語，レンマ，品詞をタブ区切り形式で出力せよ．
 print "\nQ54:"
+for element in xml.getiterator("token"):
+    print element.find("word").text + '\t' + element.find("lemma").text + '\t' + element.find("POS").text
 
 #55. 固有表現抽出
 #入力文中の人名をすべて抜き出せ．
 print "\nQ55:"
+for element in xml.getiterator("token"):
+    if element.find("NER").text == "PERSON":
+        print element.find("word").text
 
 #56. 共参照解析
 #Stanford Core NLPの共参照解析の結果に基づき，文中の参照表現（mention）を代表参照表現（representative mention）に置換せよ．ただし，置換するときは，「代表参照表現（参照表現）」のように，元の参照表現が分かるように配慮せよ．
 print "\nQ56:"
+
 
 #57. 係り受け解析
 #Stanford Core NLPの係り受け解析の結果（collapsed-dependencies）を有向グラフとして可視化せよ．可視化には，係り受け木をDOT言語に変換し，Graphvizを用いるとよい．また，Pythonから有向グラフを直接的に可視化するには，pydotを使うとよい．
