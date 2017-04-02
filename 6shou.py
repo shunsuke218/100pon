@@ -16,8 +16,14 @@ file = "nlp.txt"
 #(. or ; or : or ? or !) → 空白文字 → 英大文字というパターンを文の区切りと見なし，入力された文書を1行1文の形式で出力せよ．
 print "Q50:"
 with open(file, 'r') as input:
-    raw_input = input.read()
-    sentences = re.findall("[^\.;:\?!]+\.(?=\s+[A-Z])",raw_input)
+    raw_input = input.read().rsplit('\n')
+    sentences = []
+    for each_line in raw_input:
+        if len(re.findall("[\.;:\?!]+\s", each_line)) is 0:
+            sentences.append(each_line)
+            continue
+        sentences += [ each for each in re.findall("[^\.;:\?!]+[\.;:\?!](?=\s+[A-Z]|$)", each_line) ]
+
     for sentence in sentences:
         print sentence
 
@@ -44,11 +50,13 @@ from pycorenlp import StanfordCoreNLP
 from xml.etree import ElementTree as Etree
 
 nlp = StanfordCoreNLP('http://localhost:9000')
+#java -mx5g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -timeout 10000
 properties={
     'timeout': '50000',
     'annotators': 'tokenize,ssplit,lemma,pos,ner,parse',
     'outputFormat': 'xml'
 }
+'''
 # Merge all outputs to one
 for first, sentence in enumerate(sentences):
     data = Etree.fromstring(nlp.annotate(sentence, properties))
@@ -56,10 +64,11 @@ for first, sentence in enumerate(sentences):
         result = data
     else:
         result.extend(data)
+
 # Save file
 with open("q53.xml", 'w') as output:
     output.write(Etree.tostring(result))
-
+'''
 # Now load the file
 xml = Etree.parse("q53.xml").getroot()
 for element in xml.getiterator("word"):
@@ -83,6 +92,53 @@ for element in xml.getiterator("token"):
 #Stanford Core NLPの共参照解析の結果に基づき，文中の参照表現（mention）を代表参照表現（representative mention）に置換せよ．ただし，置換するときは，「代表参照表現（参照表現）」のように，元の参照表現が分かるように配慮せよ．
 print "\nQ56:"
 
+properties={
+    'timeout': '50000',
+    'annotators': 'tokenize, ssplit, pos, lemma, ner, parse, dcoref',
+    'outputFormat': 'xml'
+}
+
+
+import xml.dom.minidom
+
+# Merge all outputs to one
+for first, sentence in enumerate(sentences):
+    data = nlp.annotate(sentence, properties)
+    if len(re.findall("mention", data)) > 0:
+        print '\n##################################################\n',first, sentence#, data
+
+        #xml = xml.dom.minidom.parseString(data)
+        #print xml.toprettyxml()
+        data = Etree.fromstring(data)
+        print data
+    '''
+    if not first:
+        result = data
+    else:
+        result.extend(data)
+# Save file
+with open("q56.xml", 'w') as output:
+    output.write(Etree.tostring(result))
+
+    
+xml = Etree.parse("q56.xml").getroot()
+print xml.tag
+for child in xml:
+    print child.tag
+for element in xml.findall("sentence"):
+    print element.tag
+'''
+    
+'''
+print "\nQ56:"
+xml = Etree.parse("q56.xml").getroot()
+for element in xml.findall("sentence"):
+    print element
+# Now load the file
+#for element in xml.getiterator("sentence"):
+#for element in xml.iter("sentence"):
+#for element in xml.find("sentence"):
+#    print element.text
 
 #57. 係り受け解析
 #Stanford Core NLPの係り受け解析の結果（collapsed-dependencies）を有向グラフとして可視化せよ．可視化には，係り受け木をDOT言語に変換し，Graphvizを用いるとよい．また，Pythonから有向グラフを直接的に可視化するには，pydotを使うとよい．
@@ -100,3 +156,4 @@ print "\nQ58:"
 
 
 print "\nQ59:"
+'''
