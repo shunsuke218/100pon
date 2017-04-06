@@ -99,18 +99,89 @@ properties={
 }
 
 
-import xml.dom.minidom
-
+#import xml.dom.minidom
+#sentences = [sentence.replace('\n','') for sentence in sentences]
+#sentences = filter(None, sentences)
+print sentences
 # Merge all outputs to one
-for first, sentence in enumerate(sentences):
+for sentence in sentences:
     data = nlp.annotate(sentence, properties)
-    if len(re.findall("mention", data)) > 0:
-        print '\n##################################################\n',first, sentence#, data
+    try:
+        xml = Etree.fromstring(data)
+    except:
+        print '>>>', sentence, "<<<"
+        continue
+    mentions = xml.findall(".//document/coreference/coreference/mention[@representative='true']")
+    tokens = xml.findall(".//document/sentences/sentence/tokens/token")
 
-        #xml = xml.dom.minidom.parseString(data)
-        #print xml.toprettyxml()
-        data = Etree.fromstring(data)
-        print data
+    '''
+    for mention in mentions:
+        print Etree.tostring(mention)
+    print "\n\n"
+    '''
+    for index, token in enumerate(tokens):
+        for mention in mentions:
+            if int(mention.find("start").text) is index:
+                print token.find("word").text, "(", mention.find("text").text, ")",
+                #print sentence.split(' ')[index], "(", mention.find("text").text, ")",
+            else:
+                print token.find("word").text,
+    
+    '''
+    mentionlist = []
+    for index, mention in enumerate(mentions):
+        #start = mention.find("start").text; end = mention.find("end").text; text = mention.find("text").text
+        mentionlist += ( index, mention.find("start").text, mention.find("text").text )
+
+    for index, token in enumerate(tokens):
+        if int(start) is index:
+            print token.find("word").text, "(", mention.find("text").text, ")",
+        #elif int(end) - 1 is index:
+            #print index, ")", token.find("word").text, 
+        else:
+            print token.find("word").text,
+    print ""
+    '''
+        
+    '''
+        
+        #print start, end, text
+        for index, token in enumerate(tokens):
+            if int(start) is index:
+                print token.find("word").text, "(", mention.find("text").text, ")",
+            #elif int(end) - 1 is index:
+                #print index, ")", token.find("word").text, 
+            else:
+                print token.find("word").text,
+        print ""
+  <document>
+    <sentences>
+      <sentence id="1">
+        <tokens>
+          <token id="1">
+    '''
+    '''
+    if len(re.findall("mention", data)) > 0 \
+       and len(re.findall("representative", data)) > 0:
+        xml = Etree.fromstring(data)
+        print "Raw: \n" + Etree.tostring(xml) + "\n\n"
+        for component in xml.findall(".//document/coreference/coreference/mention[@representative='true']"):
+            print Etree.tostring(component) + "\n"
+            #print component.find("start")
+            print component.find("start").text, component.find("end").text, component.find("head").text
+            #print "Coreref: " + Etree.tostring(component) + "\n\n"
+        
+        for index, component in enumerate(xml.findall(".//document/sentences/sentence/tokens/")):
+            print "Finding...: " + Etree.tostring(component) + "\n\n"
+    '''
+    '''
+    if len(re.findall("mention", data)) > 0 and len(re.findall("representative", data)) > 0:
+            print '\n##################################################\n',first, sentence, data
+            #xml = xml.dom.minidom.parseString(data)
+            #print xml.toprettyxml()
+            data = Etree.fromstring(data)
+            print data
+    '''
     '''
     if not first:
         result = data
