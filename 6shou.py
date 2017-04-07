@@ -57,7 +57,7 @@ properties={
     'annotators': 'tokenize,ssplit,lemma,pos,ner,parse',
     'outputFormat': 'xml'
 }
-'''
+
 # Merge all outputs to one
 for first, sentence in enumerate(sentences):
     data = Etree.fromstring(nlp.annotate(sentence, properties))
@@ -69,7 +69,7 @@ for first, sentence in enumerate(sentences):
 # Save file
 with open("q53.xml", 'w') as output:
     output.write(Etree.tostring(result))
-'''
+
 # Now load the file
 xml = Etree.parse("q53.xml").getroot()
 for element in xml.getiterator("word"):
@@ -198,42 +198,20 @@ def find_matching_paren(list, recursive = False):
                     result = result.replace("(","(\t")
                     result += find_matching_paren(list[index:]) + "\n"
                     return result 
-                else:
-                    return result
+                else: return result
             else: stack.pop(); result += ")"
         else: result += char
     return result
 
-for sent_index, sentence in enumerate(sentences):
+for sent_index, sentence[0:5] in enumerate(sentences, 1):
     parse =  sentence.find("parse").text
-    #parse = parse.replace("(", "(####")
-    parse_iter = iter(parse)
-    #print parse
     for index, (i, j) in enumerate(zip(parse, parse[1:]), 0):
         result = ""
         if i + j == "NP":
             result = find_matching_paren(parse[index:])
-            print "-------------------------"
-            print "Raw result: " + str(sent_index) + ", " + result
             while "(" in result:
                 paren_index = result.find("(")
-                #next_result = result[paren_index:]
                 new_result = result[paren_index + 1:]
-                #print result
-                '''
-                print "index: " + str(paren_index)
-                print "result[:paren_index]: " + str(result[:paren_index])
-                print "result[paren_index:]: " + str(new_result)
-                '''
                 new_result = find_matching_paren(new_result, True)
-                #print "find_matching_paren(result[paren_index:]): " + str(new_result)
                 result = result[:paren_index] + '\n\t' + str(new_result)
-                #print "result: \n" +  result
-                #result[:paren_index] + '\t' + str(find_matching_paren(next_result))
-            print "\n\nFINAL RESULT \n###############\n" + re.sub("\n\n+", "\n", result)
-                
-                
-
-            
-            
-    
+            print str(sent_index), ":\n", re.sub("\n\n+", "\n", result) + "\n"
