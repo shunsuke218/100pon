@@ -16,9 +16,10 @@ file = "nlp.txt"
 #(. or ; or : or ? or !) → 空白文字 → 英大文字というパターンを文の区切りと見なし，入力された文書を1行1文の形式で出力せよ．
 print "Q50:"
 with open(file, 'r') as input:
-    raw_input = input.read().rsplit('\n')
+    raw_input = input.read()
+    splitted_input = raw_input.rsplit('\n')
     sentences = []
-    for each_line in raw_input:
+    for each_line in splitted_input:
         if len(re.findall("[\.;:\?!]+\s", each_line)) is 0:
             sentences.append(each_line)
             continue
@@ -92,124 +93,40 @@ for element in xml.getiterator("token"):
 #Stanford Core NLPの共参照解析の結果に基づき，文中の参照表現（mention）を代表参照表現（representative mention）に置換せよ．ただし，置換するときは，「代表参照表現（参照表現）」のように，元の参照表現が分かるように配慮せよ．
 print "\nQ56:"
 
-properties={
-    'timeout': '50000',
-    'annotators': 'tokenize, ssplit, pos, lemma, ner, parse, dcoref',
-    'outputFormat': 'xml'
-}
+xml = Etree.parse("nlp.txt.xml")
 
+# Set up mentions
+sentences = xml.findall(".//document/sentences/sentence")        
+coreference = xml.findall(".//document/coreference/")
 
-#import xml.dom.minidom
-#sentences = [sentence.replace('\n','') for sentence in sentences]
-#sentences = filter(None, sentences)
-print sentences
-# Merge all outputs to one
+# Prepare Document
+document = []
 for sentence in sentences:
-    data = nlp.annotate(sentence, properties)
-    try:
-        xml = Etree.fromstring(data)
-    except:
-        print '>>>', sentence, "<<<"
-        continue
-    mentions = xml.findall(".//document/coreference/coreference/mention[@representative='true']")
-    tokens = xml.findall(".//document/sentences/sentence/tokens/token")
+    sentence_list = []
+    for token in sentence.findall("tokens/token"):
+        sentence_list.append(token.find("word").text)
+    document.append(sentence_list)
 
-    '''
-    for mention in mentions:
-        print Etree.tostring(mention)
-    print "\n\n"
-    '''
-    for index, token in enumerate(tokens):
-        for mention in mentions:
-            if int(mention.find("start").text) is index:
-                print token.find("word").text, "(", mention.find("text").text, ")",
-                #print sentence.split(' ')[index], "(", mention.find("text").text, ")",
-            else:
-                print token.find("word").text,
-    
-    '''
-    mentionlist = []
-    for index, mention in enumerate(mentions):
-        #start = mention.find("start").text; end = mention.find("end").text; text = mention.find("text").text
-        mentionlist += ( index, mention.find("start").text, mention.find("text").text )
-
-    for index, token in enumerate(tokens):
-        if int(start) is index:
-            print token.find("word").text, "(", mention.find("text").text, ")",
-        #elif int(end) - 1 is index:
-            #print index, ")", token.find("word").text, 
+# Prepare mention    
+for mentions in coreference:
+    representative = ""
+    for mention in mentions.findall("mention"):
+        sent = int(mention.find("sentence").text) - 1
+        start = int(mention.find("start").text) - 1
+        end = int(mention.find("end").text) - 1
+        if not bool(mention.get("representative")):
+            document[sent][end] = "(" + representative + ") " + document[sent][end]
         else:
-            print token.find("word").text,
-    print ""
-    '''
-        
-    '''
-        
-        #print start, end, text
-        for index, token in enumerate(tokens):
-            if int(start) is index:
-                print token.find("word").text, "(", mention.find("text").text, ")",
-            #elif int(end) - 1 is index:
-                #print index, ")", token.find("word").text, 
-            else:
-                print token.find("word").text,
-        print ""
-  <document>
-    <sentences>
-      <sentence id="1">
-        <tokens>
-          <token id="1">
-    '''
-    '''
-    if len(re.findall("mention", data)) > 0 \
-       and len(re.findall("representative", data)) > 0:
-        xml = Etree.fromstring(data)
-        print "Raw: \n" + Etree.tostring(xml) + "\n\n"
-        for component in xml.findall(".//document/coreference/coreference/mention[@representative='true']"):
-            print Etree.tostring(component) + "\n"
-            #print component.find("start")
-            print component.find("start").text, component.find("end").text, component.find("head").text
-            #print "Coreref: " + Etree.tostring(component) + "\n\n"
-        
-        for index, component in enumerate(xml.findall(".//document/sentences/sentence/tokens/")):
-            print "Finding...: " + Etree.tostring(component) + "\n\n"
-    '''
-    '''
-    if len(re.findall("mention", data)) > 0 and len(re.findall("representative", data)) > 0:
-            print '\n##################################################\n',first, sentence, data
-            #xml = xml.dom.minidom.parseString(data)
-            #print xml.toprettyxml()
-            data = Etree.fromstring(data)
-            print data
-    '''
-    '''
-    if not first:
-        result = data
-    else:
-        result.extend(data)
-# Save file
-with open("q56.xml", 'w') as output:
-    output.write(Etree.tostring(result))
+            representative = ' '.join(document[sent][start:end])
 
-    
-xml = Etree.parse("q56.xml").getroot()
-print xml.tag
-for child in xml:
-    print child.tag
-for element in xml.findall("sentence"):
-    print element.tag
-'''
-    
-'''
-print "\nQ56:"
-xml = Etree.parse("q56.xml").getroot()
-for element in xml.findall("sentence"):
-    print element
-# Now load the file
-#for element in xml.getiterator("sentence"):
-#for element in xml.iter("sentence"):
-#for element in xml.find("sentence"):
-#    print element.text
+for sentence in document:
+    print " ".join(sentence)\
+             .replace("-LRB-", "(")\
+             .replace("-RRB-", ")")\
+             .replace(" , ", ", ")\
+             .replace(" )", ")")\
+             .replace("( ", "(")
+
 
 #57. 係り受け解析
 #Stanford Core NLPの係り受け解析の結果（collapsed-dependencies）を有向グラフとして可視化せよ．可視化には，係り受け木をDOT言語に変換し，Graphvizを用いるとよい．また，Pythonから有向グラフを直接的に可視化するには，pydotを使うとよい．
@@ -227,4 +144,3 @@ print "\nQ58:"
 
 
 print "\nQ59:"
-'''
