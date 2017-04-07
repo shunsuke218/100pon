@@ -92,10 +92,16 @@ for element in xml.getiterator("token"):
 #56. 共参照解析
 #Stanford Core NLPの共参照解析の結果に基づき，文中の参照表現（mention）を代表参照表現（representative mention）に置換せよ．ただし，置換するときは，「代表参照表現（参照表現）」のように，元の参照表現が分かるように配慮せよ．
 print "\nQ56:"
-
+# Prepare Annotation
+'''
+properties={
+    'timeout': '50000',
+    'annotators': 'tokenize,ssplit,lemma,pos,ner,parse,dcoref',
+    'outputFormat': 'xml'
+}
+xml = Etree.fromstring(nlp.annotate(raw_input, properties)) # Gave me error. Prompted from bash instead.
+'''
 xml = Etree.parse("nlp.txt.xml")
-
-# Set up mentions
 sentences = xml.findall(".//document/sentences/sentence")        
 coreference = xml.findall(".//document/coreference/")
 
@@ -109,7 +115,6 @@ for sentence in sentences:
 
 # Prepare mention    
 for mentions in coreference:
-    representative = ""
     for mention in mentions.findall("mention"):
         sent = int(mention.find("sentence").text) - 1
         start = int(mention.find("start").text) - 1
@@ -119,6 +124,7 @@ for mentions in coreference:
         else:
             representative = ' '.join(document[sent][start:end])
 
+# Prompt
 for sentence in document:
     print " ".join(sentence)\
              .replace("-LRB-", "(")\
@@ -131,16 +137,103 @@ for sentence in document:
 #57. 係り受け解析
 #Stanford Core NLPの係り受け解析の結果（collapsed-dependencies）を有向グラフとして可視化せよ．可視化には，係り受け木をDOT言語に変換し，Graphvizを用いるとよい．また，Pythonから有向グラフを直接的に可視化するには，pydotを使うとよい．
 print "\nQ57:"
+import pydot
+
+#xml = Etree.parse("nlp.txt.xml")
+depends = xml.findall(".//document/sentences/sentence/dependencies[@type='collapsed-dependencies']")        
+
+graph = pydot.Dot(graph_type='digraph')
+for depend in depends[0:1]:
+    for dep in depend.findall("dep"):
+        #print dep, dep.find("governor").text, dep.find("dependent").text
+        edge = pydot.Edge(dep.find("governor").text, dep.find("dependent").text)
+        graph.add_edge(edge)
+graph.write_png('q57_graph.png')
+#graph.write('q57_graph.png')
 
 #58. タプルの抽出
 #Stanford Core NLPの係り受け解析の結果（collapsed-dependencies）に基づき，「主語 述語 目的語」の組をタブ区切り形式で出力せよ．ただし，主語，述語，目的語の定義は以下を参考にせよ．
-print "\nQ58:"
-
 #述語: nsubj関係とdobj関係の子（dependant）を持つ単語
 #主語: 述語からnsubj関係にある子（dependent）
 #目的語: 述語からdobj関係にある子（dependent）
+print "\nQ58:"
+for depend in depends:
+    dictionary = {}
+    for dep in depend.findall("dep"):
+        subj = obj = predicate = None
+        deptype = dep.get("type")
+        index = dep.find("governor").get("idx")
+        predicate = dep.find("governor").text
+        
+        if deptype == "nsubj":
+            if index in dictionary.keys():
+                predicate, obj = dictionary[index]
+                subj = dep.find("dependent").text
+            else:
+                dictionary[index] = (predicate, dep.find("dependent").text)
+        elif deptype == "dobj":
+            if index in dictionary.keys():
+                predicate, subj = dictionary[index]
+                obj = dep.find("dependent").text
+            else:
+                dictionary[index] = (predicate, dep.find("dependent").text)
+        else:
+            predicate = None
+
+
+        if all([subj, predicate, obj]):
+            print subj + '\t' + predicate + '\t' + obj
+
+
 #59. S式の解析
 #Stanford Core NLPの句構造解析の結果（S式）を読み込み，文中のすべての名詞句（NP）を表示せよ．入れ子になっている名詞句もすべて表示すること．
-
-
 print "\nQ59:"
+def find_matching_paren(list, recursive = False):
+    result = ""; stack = []
+    for index, char in enumerate(list, 1):
+        if char == "(": stack.append("("); result += "("
+        elif char == ")": 
+            if len(stack) is 0:
+                if recursive and len(list) - index > 0:
+                    result = result.replace("(","(\t")
+                    result += find_matching_paren(list[index:]) + "\n"
+                    return result 
+                else:
+                    return result
+            else: stack.pop(); result += ")"
+        else: result += char
+    return result
+
+for sent_index, sentence in enumerate(sentences):
+    parse =  sentence.find("parse").text
+    #parse = parse.replace("(", "(####")
+    parse_iter = iter(parse)
+    #print parse
+    for index, (i, j) in enumerate(zip(parse, parse[1:]), 0):
+        result = ""
+        if i + j == "NP":
+            result = find_matching_paren(parse[index:])
+            print "-------------------------"
+            print "Raw result: " + str(sent_index) + ", " + result
+            while "(" in result:
+                paren_index = result.find("(")
+                #next_result = result[paren_index:]
+                new_result = result[paren_index + 1:]
+                #print result
+                '''
+                print "index: " + str(paren_index)
+                print "result[:paren_index]: " + str(result[:paren_index])
+                print "result[paren_index:]: " + str(new_result)
+                '''
+                new_result = find_matching_paren(new_result, True)
+                #print "find_matching_paren(result[paren_index:]): " + str(new_result)
+                result = result[:paren_index] + '\n\t' + str(new_result)
+                #print "result: \n" +  result
+                #result[:paren_index] + '\t' + str(find_matching_paren(next_result))
+            print "\n\nFINAL RESULT \n###############\n" + re.sub("\n\n+", "\n", result)
+                
+                
+
+            
+            
+    
